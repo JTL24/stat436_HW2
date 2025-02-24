@@ -1,0 +1,138 @@
+---
+title: "hw2"
+output: html_document
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+```{r}
+library(shiny)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+
+# Load data once at startup
+nba_data <- read.csv("NBA_Stats_24_25.csv") %>% rename(Date = Data)
+
+
+# global stat_choices, need for later
+stat_choices <- c(
+  "Points" = "PTS",
+  "Assists" = "AST",
+  "Rebounds" = "TRB",
+  "Blocks" = "BLK",
+  "Steals" = "STL",
+  "Field Goal %" = "FG.",
+  "3-Point %" = "X3P."
+)
+
+# frontend 
+ui <- fluidPage(
+  titlePanel(
+    h1("NBA Player Analysis (2024-25 Season)", 
+       style = "color: #1179a5; font-weight: bold") # styling to make look nicer
+  ),
+  
+  sidebarLayout(
+    sidebarPanel(
+      
+      selectInput("player_select",
+                  "Select Player:", # sort alphabetically and remove duplicates
+                  choices = sort(unique(nba_data$Player)),
+                  selected = sort(unique(nba_data$Player))[1]), 
+      
+      # stat selecter
+      selectInput("stat_select",
+                 "Select Statistic:",
+                 choices = stat_choices),
+      
+      # date slider
+      sliderInput("date_range",
+                 "Select Date Range:",
+                 min = as.Date("2024-10-22"),
+                 max = as.Date("2025-02-07"),
+                 value = c(as.Date("2024-10-22"), as.Date("2025-02-07")),
+                 timeFormat = "%Y-%m-%d",
+                 step = 1) # one day at a time
+    ),
+    
+    # main panel with plot
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Player Performance",
+                 plotOutput("line_plot"),
+                h4("Player's Average Stats Per Game Over Selected Time Period", style = "color:  #1179a5"),
+                 tableOutput("player_stats")),
+        tabPanel("About",
+                 h3("About this Interactive Dashboard"),
+                 p("This interactive dashboard allows you to explore NBA player statistics 
+                   for the 2024-25 season (up until 2/07/2025). Use the controls on the left to filter and analyze 
+                   player performance over time. You can view individual performance on various statistics and various                    time periods throughout the season."),
+                 h4("Data Source"),
+                 p("The data was obtained on Kaggle: https://www.kaggle.com/datasets/drgilermo/nba-players-stats/data"),
+                 p("This contains player statistics from the current NBA season."))
+      )
+    )
+  )
+)
+
+# backend
+server <- function(input, output) {
+  
+  # get stat name
+  stat_name <- reactive({
+    # gets the names of stat_choices then checks which one the user is selecting
+    names(stat_choices)[stat_choices == input$stat_select]
+  })
+  
+  # filtering based on selection
+  filtered_data <- reactive({
+    data <- nba_data
+    
+    #  filter for Player
+    data <- data %>% filter(Player == input$player_select)
+    
+    # if not null filter based on data
+    if (!is.null(input$date_range)) {
+      data <- data %>% 
+        # filter in data range
+        filter(as.Date(Date) >= input$date_range[1], as.Date(Date) <= input$date_range[2])
+    }
+    data
+  })
+  
+  # line plot showing player stats 
+  output$line_plot <- renderPlot({
+    ggplot(filtered_data(), aes(x = as.Date(Date), y = get(input$stat_select))) +
+      geom_line(color = "#1179a5", size = 1) +
+      geom_point(color = "#1179a5", size = 3) +
+      scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+      labs(x = "Date",
+           y = stat_name(),
+           title = paste(input$player_select, "-", stat_name(), "Over Time")) +
+      theme(
+        plot.title = element_text(face = "bold", size = 24),
+        axis.title = element_text(face = "bold", size = 18),
+        axis.text = element_text(face = "bold", size = 16)
+      )
+  })
+  
+  # stats summary over time
+  output$player_stats <- renderTable({
+    filtered_data() %>%
+      summarize(
+        Games = n(), # count nuber of rows 
+        "Points" = round(mean(PTS, na.rm = TRUE), 2),
+        "Rebounds" = round(mean(TRB, na.rm = TRUE), 2),
+        "Assists" = round(mean(AST, na.rm = TRUE), 2),
+        "Field Goal %" = round(mean(FG., na.rm = TRUE), 2),
+        "3-Point %" = round(mean(X3P., na.rm = TRUE), 2)
+      )
+  }, align = 'c') # align center 
+}
+
+shinyApp(ui, server)
+```
