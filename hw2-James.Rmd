@@ -1,6 +1,6 @@
 ---
-title: "hw2"
-output: html_document
+title: "Homework 2"
+output: rmdformats::readthedown
 ---
 
 ```{r, echo = FALSE}
@@ -70,10 +70,10 @@ ui <- fluidPage(
                  h3("About this Interactive Dashboard"),
                  p("This interactive dashboard allows you to explore NBA player statistics 
                    for the 2024-25 season (up until 2/07/2025). Use the controls on the left to filter and analyze 
-                   player performance over time. You can view individual performance on various statistics and various                    time periods throughout the season."),
+                   player performance over your own selected date range. Allowing you to view individual performance on various statistics and various                    time periods throughout the season."),
                  h4("Data Source"),
-                 p("The data was obtained on Kaggle: https://www.kaggle.com/datasets/drgilermo/nba-players-stats/data"),
-                 p("This contains player statistics from the current NBA season."))
+                 p("The data was obtained on Kaggle: https://www.kaggle.com/datasets/eduardopalmieri/nba-player-stats-season-2425"),
+                 p("This dataset was collected from reliable sources and contains both advanced and traditional player statistics from the current NBA season."))
       )
     )
   )
